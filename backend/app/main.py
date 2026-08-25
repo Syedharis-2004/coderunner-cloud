@@ -2,11 +2,13 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
 from app.api.v1 import api_router
 from app.services.language_registry import language_registry
 from app.services.docker_engine import docker_engine
+from app.core.rate_limiter import limiter, rate_limit_exceeded_handler
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,6 +21,9 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+# Add rate limiter state
+app.state.limiter = limiter
+
 # CORS
 app.add_middleware(
     CORSMiddleware,
@@ -30,6 +35,21 @@ app.add_middleware(
 
 # Mount API v1 router
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+
+# Add rate limit exception handler
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+
+
+# ── Middleware to attach user to request state ────────────────────────────────
+@app.middleware("http")
+async def attach_user_to_request(request: Request, call_next):
+    """
+    Middleware to make user available to rate limiter.
+    This runs before the dependency injection system.
+    """
+    # We'll let the dependencies handle auth; this is just for rate limiting prep
+    response = await call_next(request)
+    return response
 
 
 # ── Global exception handler ───────────────────────────────────────────────────

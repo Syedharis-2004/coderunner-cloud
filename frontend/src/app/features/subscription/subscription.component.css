@@ -1,0 +1,300 @@
+.subscription-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+h1 {
+  font-size: 2rem;
+  color: var(--cyber-neon, #00ff41);
+  margin-bottom: 2rem;
+}
+
+.loading, .loading-small {
+  text-align: center;
+  padding: 3rem 0;
+}
+
+.spinner, .spinner-small {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #333;
+  border-top-color: var(--cyber-neon, #00ff41);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+.spinner-small {
+  width: 30px;
+  height: 30px;
+  border-width: 2px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-message {
+  background: #ff4444;
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.no-subscription-card {
+  background: #1a1a1a;
+  border: 2px solid #333;
+  border-radius: 12px;
+  padding: 3rem;
+  text-align: center;
+}
+
+.no-subscription-card h2 {
+  color: white;
+  margin-bottom: 1rem;
+}
+
+.no-subscription-card p {
+  color: #888;
+  margin-bottom: 2rem;
+}
+
+.card {
+  background: #1a1a1a;
+  border: 2px solid #333;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-header h2 {
+  font-size: 1.5rem;
+  color: white;
+  margin: 0;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-active {
+  background: #00ff41;
+  color: #000;
+}
+
+.status-trialing {
+  background: #4a90e2;
+  color: white;
+}
+
+.status-warning {
+  background: #ff9800;
+  color: white;
+}
+
+.status-canceled {
+  background: #ff4444;
+  color: white;
+}
+
+.status-default {
+  background: #666;
+  color: white;
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-row.warning {
+  background: rgba(255, 152, 0, 0.1);
+  padding: 0.75rem;
+  border-radius: 6px;
+  border-bottom: none;
+}
+
+.label {
+  color: #888;
+  font-weight: 500;
+}
+
+.value {
+  color: white;
+  font-weight: 600;
+}
+
+.card-actions {
+  padding: 1.5rem;
+  border-top: 1px solid #333;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-success {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: var(--cyber-neon, #00ff41);
+  color: #000;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #00dd38;
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: #333;
+  color: white;
+  border: 2px solid #444;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #444;
+  border-color: var(--cyber-neon, #00ff41);
+}
+
+.btn-danger {
+  background: transparent;
+  color: #ff4444;
+  border: 2px solid #ff4444;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: rgba(255, 68, 68, 0.1);
+}
+
+.btn-success {
+  background: var(--cyber-neon, #00ff41);
+  color: #000;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.payment-history {
+  margin-top: 2rem;
+}
+
+.no-data {
+  text-align: center;
+  padding: 3rem;
+  color: #888;
+}
+
+.payment-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.payment-table thead {
+  background: #2a2a2a;
+}
+
+.payment-table th {
+  padding: 1rem;
+  text-align: left;
+  color: #888;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+}
+
+.payment-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #2a2a2a;
+  color: white;
+}
+
+.payment-table tr:last-child td {
+  border-bottom: none;
+}
+
+.payment-status {
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.payment-success {
+  background: rgba(0, 255, 65, 0.2);
+  color: var(--cyber-neon, #00ff41);
+}
+
+.payment-pending {
+  background: rgba(255, 152, 0, 0.2);
+  color: #ff9800;
+}
+
+.payment-failed {
+  background: rgba(255, 68, 68, 0.2);
+  color: #ff4444;
+}
+
+.receipt-link {
+  color: var(--cyber-neon, #00ff41);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s;
+}
+
+.receipt-link:hover {
+  border-bottom-color: var(--cyber-neon, #00ff41);
+}
+
+@media (max-width: 768px) {
+  .card-actions {
+    flex-direction: column;
+  }
+
+  .card-actions button {
+    width: 100%;
+  }
+
+  .payment-table {
+    font-size: 0.875rem;
+  }
+
+  .payment-table th,
+  .payment-table td {
+    padding: 0.75rem 0.5rem;
+  }
+}

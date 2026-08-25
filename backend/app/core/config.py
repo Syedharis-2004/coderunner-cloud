@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     # API Key hashing secret
     API_KEY_SECRET: str = Field(default="api_key_secret_salt_for_hmac_hashing_change_me!")
 
+    # SafePay Configuration
+    SAFEPAY_API_KEY: str = Field(default="")
+    SAFEPAY_WEBHOOK_SECRET: str = Field(default="")
+    SAFEPAY_ENVIRONMENT: str = Field(default="sandbox")  # "sandbox" or "production"
+
     # Docker Sandbox Execution Constraints
     DOCKER_BASE_URL: str = Field(default="")
     DEFAULT_EXECUTION_TIMEOUT: int = Field(default=10)
@@ -37,7 +42,7 @@ class Settings(BaseSettings):
     MAX_SOURCE_CODE_SIZE_BYTES: int = Field(default=65536)   # 64 KB
     MAX_OUTPUT_SIZE_BYTES: int = Field(default=131072)        # 128 KB
 
-    # Plan Limits
+    # Plan Limits (Legacy - now stored in plans table)
     FREE_MONTHLY_EXECUTIONS: int = Field(default=100)
     DEVELOPER_MONTHLY_EXECUTIONS: int = Field(default=5000)
     PRO_MONTHLY_EXECUTIONS: int = Field(default=25000)

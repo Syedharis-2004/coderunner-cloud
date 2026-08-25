@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import verify_password, get_password_hash, create_access_token
-from app.models.user import User, UserPlan, UserRole
+from app.models.user import User, UserRole
 from app.schemas.user import UserCreate, UserLogin, UserRead, TokenResponse, UserUpdate
 from app.schemas.common import ResponseEnvelope
 from app.api.deps import get_current_user
@@ -20,8 +20,7 @@ logger = logging.getLogger(__name__)
     summary="Register a new account",
 )
 def register(payload: UserCreate, db: Session = Depends(get_db)):
-    """Create a new CodeRunner Cloud account. Returns a JWT token on success."""
-    # Check for existing email
+    """Create a new Code Cloud account. Returns a JWT token on success."""
     existing = db.query(User).filter(User.email == payload.email.lower().strip()).first()
     if existing:
         raise HTTPException(
@@ -34,7 +33,6 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
         name=payload.name.strip(),
         hashed_password=get_password_hash(payload.password),
         role=UserRole.USER,
-        plan=UserPlan.FREE,
         is_active=True,
     )
     db.add(user)
@@ -103,11 +101,9 @@ def update_me(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Update allowed profile fields (name, plan)."""
+    """Update allowed profile fields (name only)."""
     if payload.name is not None:
         current_user.name = payload.name.strip()
-    if payload.plan is not None:
-        current_user.plan = payload.plan
 
     db.commit()
     db.refresh(current_user)

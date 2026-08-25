@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, EmailStr, field_validator
-from app.models.user import UserPlan, UserRole
+from app.models.user import UserRole
 
 
 class UserCreate(BaseModel):
@@ -32,13 +32,16 @@ class UserLogin(BaseModel):
     password: str
 
 
+# Keep LoginRequest as an alias so any existing imports don't break
+LoginRequest = UserLogin
+
+
 class UserRead(BaseModel):
     """Public-safe user representation."""
     id: str
     name: str
     email: str
     role: UserRole
-    plan: UserPlan
     is_active: bool
     created_at: datetime
 
@@ -46,9 +49,8 @@ class UserRead(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    """Allowed fields for profile updates."""
+    """Allowed fields for profile updates (name only — plan changes go through billing)."""
     name: Optional[str] = None
-    plan: Optional[UserPlan] = None
 
 
 class TokenResponse(BaseModel):

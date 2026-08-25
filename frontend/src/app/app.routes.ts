@@ -9,6 +9,8 @@ import { ProjectsComponent } from './features/projects/projects.component';
 import { ApiKeysComponent } from './features/api-keys/api-keys.component';
 import { AdminComponent } from './features/admin/admin.component';
 import { LandingComponent } from './features/landing/landing.component';
+import { PricingComponent } from './features/pricing/pricing.component';
+import { SubscriptionComponent } from './features/subscription/subscription.component';
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 
@@ -17,6 +19,10 @@ export const routes: Routes = [
     path: '',
     component: LandingComponent,
     pathMatch: 'full'
+  },
+  {
+    path: 'pricing',
+    component: PricingComponent
   },
   {
     path: '',
@@ -36,6 +42,7 @@ export const routes: Routes = [
       { path: 'editor/:id', component: EditorComponent },
       { path: 'projects', component: ProjectsComponent },
       { path: 'api-keys', component: ApiKeysComponent },
+      { path: 'subscription', component: SubscriptionComponent },
       { path: 'admin', component: AdminComponent, canActivate: [adminGuard] },
     ]
   },

@@ -1,7 +1,7 @@
 from typing import Optional, Tuple
 from datetime import datetime, timezone
 
-from fastapi import Depends, HTTPException, Security, status
+from fastapi import Depends, HTTPException, Security, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHeader
 from sqlalchemy.orm import Session
 
@@ -19,6 +19,7 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Security(bearer_scheme),
     db: Session = Depends(get_db),
+    request: Request = None,
 ) -> User:
     """
     FastAPI dependency — validates JWT Bearer token and returns the authenticated user.
@@ -45,6 +46,10 @@ def get_current_user(
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is deactivated.")
 
+    # Store user in request state for rate limiter
+    if request:
+        request.state.user = user
+    
     return user
 
 
@@ -53,6 +58,7 @@ def get_current_user_or_api_key(
     credentials: Optional[HTTPAuthorizationCredentials] = Security(bearer_scheme),
     raw_api_key: Optional[str] = Security(api_key_header),
     db: Session = Depends(get_db),
+    request: Request = None,
 ) -> Tuple[User, Optional[APIKey]]:
     """
     FastAPI dependency — accepts either:
@@ -86,11 +92,17 @@ def get_current_user_or_api_key(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="User associated with this API key is inactive.",
             )
+        
+        # Store in request state for rate limiter
+        if request:
+            request.state.user = user
+            request.state.api_key = api_key
+        
         return user, api_key
 
     # 2. Try JWT Bearer
     if credentials:
-        user = get_current_user(credentials, db)
+        user = get_current_user(credentials, db, request)
         return user, None
 
     raise HTTPException(
@@ -101,7 +113,7 @@ def get_current_user_or_api_key(
 
 
 # ── Admin-only dependency ──────────────────────────────────────────────────────
-def require_admin(current_user: User = Depends(get_current_user)) -> User:
+def require_admin(current_user: User = Depends(get_current_user), request: Request = None) -> User:
     """Dependency that ensures the caller has the ADMIN role."""
     from app.models.user import UserRole
     if current_user.role != UserRole.ADMIN:

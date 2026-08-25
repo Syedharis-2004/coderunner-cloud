@@ -6,7 +6,8 @@ import { ResponseEnvelope } from './auth.service';
 
 export interface UsageStats {
   billing_period: string;
-  plan: string;
+  plan_name: string;
+  plan_key: string;
   total_executions: number;
   successful_executions: number;
   failed_executions: number;
@@ -15,7 +16,8 @@ export interface UsageStats {
   monthly_limit: number;
   remaining: number;
   timeout_seconds: number;
-  memory_limit: string;
+  memory_limit_mb: number;
+  api_access_enabled: boolean;
 }
 
 @Injectable({

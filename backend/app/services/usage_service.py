@@ -7,42 +7,15 @@ Responsibilities:
 - Return current monthly usage stats.
 """
 import logging
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Tuple
 
 from sqlalchemy.orm import Session
 
-from app.models.user import User, UserPlan
+from app.models.user import User
 from app.models.usage import UsageRecord
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class PlanLimits:
-    monthly_executions: int
-    timeout_seconds: int
-    memory_limit: str
-
-
-PLAN_LIMITS_MAP: dict[UserPlan, PlanLimits] = {
-    UserPlan.FREE: PlanLimits(
-        monthly_executions=100,
-        timeout_seconds=5,
-        memory_limit="128m",
-    ),
-    UserPlan.DEVELOPER: PlanLimits(
-        monthly_executions=5000,
-        timeout_seconds=10,
-        memory_limit="256m",
-    ),
-    UserPlan.PRO: PlanLimits(
-        monthly_executions=25000,
-        timeout_seconds=30,
-        memory_limit="512m",
-    ),
-}
 
 
 def _current_period() -> str:
@@ -77,24 +50,15 @@ class UsageService:
     def can_execute(self, db: Session, user: User, is_api: bool = False) -> Tuple[bool, str]:
         """
         Check whether the user has remaining quota for this billing period.
+        Now uses subscription-based plan limits.
 
         Returns:
             (True, "") if allowed, or (False, reason_message) if denied.
         """
-        limits = PLAN_LIMITS_MAP.get(user.plan)
-        if not limits:
-            return False, f"Unknown plan: {user.plan}"
-
-        record = _get_or_create_record(db, user.id)
-        db.commit()
-
-        if record.total_executions >= limits.monthly_executions:
-            return False, (
-                f"Monthly execution limit reached ({limits.monthly_executions} executions). "
-                "Please upgrade your plan."
-            )
-
-        return True, ""
+        # Import here to avoid circular imports
+        from app.services.subscription_service import subscription_service
+        
+        return subscription_service.can_execute_code(db, user, is_api)
 
     def record_execution(
         self,
@@ -132,21 +96,28 @@ class UsageService:
 
     def get_current_usage(self, db: Session, user: User) -> dict:
         """Return current month usage stats and plan limits for the user."""
+        from app.services.subscription_service import subscription_service
+        
         record = _get_or_create_record(db, user.id)
         db.commit()
-        limits = PLAN_LIMITS_MAP.get(user.plan, PLAN_LIMITS_MAP[UserPlan.FREE])
+        
+        # Get plan from subscription
+        plan = subscription_service.get_user_plan(db, user)
+        
         return {
             "billing_period": record.billing_period,
-            "plan": user.plan,
+            "plan_name": plan.name,
+            "plan_key": plan.key,
             "total_executions": record.total_executions,
             "successful_executions": record.successful_executions,
             "failed_executions": record.failed_executions,
             "api_executions": record.api_executions,
             "total_compute_seconds": round(record.total_compute_seconds, 2),
-            "monthly_limit": limits.monthly_executions,
-            "remaining": max(0, limits.monthly_executions - record.total_executions),
-            "timeout_seconds": limits.timeout_seconds,
-            "memory_limit": limits.memory_limit,
+            "monthly_limit": plan.monthly_executions,
+            "remaining": max(0, plan.monthly_executions - record.total_executions),
+            "timeout_seconds": plan.timeout_seconds,
+            "memory_limit_mb": plan.memory_limit_mb,
+            "api_access_enabled": plan.api_access_enabled,
         }
 
 

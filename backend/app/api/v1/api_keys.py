@@ -26,17 +26,33 @@ def create_api_key(
     """
     Generate a new API Key for programmatic REST API access.
     The raw key is returned exactly once and is never stored in plain text.
+    
+    IMPORTANT: Requires an active paid subscription.
     """
-    # Enforce limit of max 10 active keys per user (arbitrary anti-spam)
+    from app.services.subscription_service import subscription_service
+    
+    # Check if user can generate API key (subscription check)
+    can_create, reason = subscription_service.can_generate_api_key(db, current_user)
+    
+    if not can_create:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=reason,
+        )
+    
+    # Get user's plan to check max API keys limit
+    plan = subscription_service.get_user_plan(db, current_user)
+    
+    # Count active keys
     active_keys_count = db.query(APIKey).filter(
         APIKey.user_id == current_user.id, 
         APIKey.is_active == True
     ).count()
 
-    if active_keys_count >= 10:
+    if active_keys_count >= plan.max_api_keys:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You can have a maximum of 10 active API keys.",
+            detail=f"API key limit reached ({plan.max_api_keys} keys for {plan.name} plan). Revoke an existing key or upgrade your plan.",
         )
 
     raw_key, key_prefix, key_hash = generate_api_key()
@@ -51,7 +67,7 @@ def create_api_key(
     db.commit()
     db.refresh(api_key_record)
 
-    logger.info(f"API key '{payload.name}' generated for user {current_user.id}")
+    logger.info(f"API key '{payload.name}' generated for user {current_user.id} (plan: {plan.key})")
 
     return ResponseEnvelope(
         success=True,

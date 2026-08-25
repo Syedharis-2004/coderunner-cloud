@@ -14,11 +14,12 @@ import logging
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 
 from app.core.database import get_db
+from app.core.rate_limiter import limiter, get_plan_rate_limit
 from app.models.user import User
 from app.models.api_key import APIKey
 from app.models.execution import Execution, ExecutionStatus, ExecutionSource
@@ -32,7 +33,7 @@ from app.schemas.common import ResponseEnvelope
 from app.api.deps import get_current_user, get_current_user_or_api_key
 from app.services.language_registry import language_registry
 from app.services.execution_service import execution_service
-from app.services.usage_service import usage_service, PLAN_LIMITS_MAP
+from app.services.usage_service import usage_service
 
 router = APIRouter(prefix="/executions", tags=["Executions"])
 logger = logging.getLogger(__name__)
@@ -44,7 +45,9 @@ logger = logging.getLogger(__name__)
     response_model=ResponseEnvelope[ExecutionResult],
     summary="Execute code (synchronous)",
 )
+@limiter.limit(get_plan_rate_limit)
 def run_code(
+    request: Request,  # Required for rate limiter
     payload: CodeExecutionRequest,
     auth_data: Tuple[User, Optional[APIKey]] = Depends(get_current_user_or_api_key),
     db: Session = Depends(get_db),
@@ -85,8 +88,9 @@ def run_code(
     db.refresh(execution)
 
     # 4. Run in Docker sandbox
-    limits = PLAN_LIMITS_MAP.get(user.plan)
-    timeout = payload.timeout_seconds or (limits.timeout_seconds if limits else 10)
+    from app.services.subscription_service import subscription_service
+    plan = subscription_service.get_user_plan(db, user)
+    timeout = payload.timeout_seconds or plan.timeout_seconds
 
     result = execution_service.execute(
         language_key=execution.language,
@@ -145,7 +149,9 @@ def run_code(
     status_code=status.HTTP_202_ACCEPTED,
     summary="Queue code execution (async)",
 )
+@limiter.limit(get_plan_rate_limit)
 def queue_execution(
+    request: Request,  # Required for rate limiter
     payload: CodeExecutionRequest,
     auth_data: Tuple[User, Optional[APIKey]] = Depends(get_current_user_or_api_key),
     db: Session = Depends(get_db),
@@ -188,8 +194,9 @@ def queue_execution(
         logger.info(f"[Queue] Dispatched execution {execution.id} to Celery")
     except Exception as exc:
         logger.warning(f"[Queue] Celery unavailable ({exc}), running inline fallback")
-        limits = PLAN_LIMITS_MAP.get(user.plan)
-        timeout = payload.timeout_seconds or (limits.timeout_seconds if limits else 10)
+        from app.services.subscription_service import subscription_service
+        plan = subscription_service.get_user_plan(db, user)
+        timeout = payload.timeout_seconds or plan.timeout_seconds
         result = execution_service.execute(
             language_key=execution.language,
             code=execution.code,

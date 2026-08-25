@@ -1,0 +1,147 @@
+<div class="subscription-container">
+  <h1>Subscription Management</h1>
+
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Loading subscription details...</p>
+  </div>
+
+  <div *ngIf="error" class="error-message">{{ error }}</div>
+
+  <!-- No Subscription (Free Tier) -->
+  <div *ngIf="!loading && !subscription" class="no-subscription-card">
+    <h2>You're on the Free Tier</h2>
+    <p>Upgrade to unlock production API access, more executions, and priority support.</p>
+    <button class="btn-primary" (click)="upgradePlan()">View Plans</button>
+  </div>
+
+  <!-- Active Subscription -->
+  <div *ngIf="!loading && subscription" class="subscription-details">
+    <div class="card">
+      <div class="card-header">
+        <h2>Current Subscription</h2>
+        <span class="status-badge" [ngClass]="getStatusClass(subscription.status)">
+          {{ subscription.status | uppercase }}
+        </span>
+      </div>
+
+      <div class="card-body">
+        <div class="detail-row">
+          <span class="label">Plan:</span>
+          <span class="value">{{ subscription.plan?.name || 'N/A' }}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="label">Price:</span>
+          <span class="value">${{ subscription.plan?.price_monthly || 0 }}/month</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="label">Monthly Executions:</span>
+          <span class="value">{{ subscription.plan?.monthly_executions | number }}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="label">API Keys Allowed:</span>
+          <span class="value">{{ subscription.plan?.max_api_keys }}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="label">Current Period:</span>
+          <span class="value">
+            {{ formatDate(subscription.current_period_start) }} - {{ formatDate(subscription.current_period_end) }}
+          </span>
+        </div>
+
+        <div *ngIf="subscription.cancel_at_period_end" class="detail-row warning">
+          <span class="label">Cancellation:</span>
+          <span class="value">Subscription will end on {{ formatDate(subscription.current_period_end) }}</span>
+        </div>
+      </div>
+
+      <div class="card-actions">
+        <button 
+          class="btn-secondary" 
+          (click)="openCustomerPortal()"
+          [disabled]="processing"
+        >
+          <span *ngIf="!processing">Manage Billing</span>
+          <span *ngIf="processing">Processing...</span>
+        </button>
+
+        <button 
+          *ngIf="!subscription.cancel_at_period_end"
+          class="btn-danger" 
+          (click)="cancelSubscription()"
+          [disabled]="processing"
+        >
+          Cancel Subscription
+        </button>
+
+        <button 
+          *ngIf="subscription.cancel_at_period_end"
+          class="btn-success" 
+          (click)="reactivateSubscription()"
+          [disabled]="processing"
+        >
+          Reactivate Subscription
+        </button>
+
+        <button 
+          class="btn-primary" 
+          (click)="upgradePlan()"
+        >
+          Change Plan
+        </button>
+      </div>
+    </div>
+
+    <!-- Payment History -->
+    <div class="card payment-history">
+      <div class="card-header">
+        <h2>Payment History</h2>
+      </div>
+
+      <div *ngIf="loadingPayments" class="loading-small">
+        <div class="spinner-small"></div>
+        <p>Loading payments...</p>
+      </div>
+
+      <div *ngIf="!loadingPayments && payments.length === 0" class="no-data">
+        <p>No payment history yet.</p>
+      </div>
+
+      <div *ngIf="!loadingPayments && payments.length > 0" class="payment-list">
+        <table class="payment-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Description</th>
+              <th>Receipt</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let payment of payments">
+              <td>{{ formatDate(payment.created_at) }}</td>
+              <td>{{ formatAmount(payment.amount, payment.currency) }}</td>
+              <td>
+                <span class="payment-status" [ngClass]="getPaymentStatusClass(payment.status)">
+                  {{ payment.status | uppercase }}
+                </span>
+              </td>
+              <td>{{ payment.description || 'Subscription payment' }}</td>
+              <td>
+                <a *ngIf="payment.receipt_url" [href]="payment.receipt_url" target="_blank" class="receipt-link">
+                  View
+                </a>
+                <span *ngIf="!payment.receipt_url">-</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

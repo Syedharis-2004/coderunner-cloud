@@ -28,6 +28,12 @@ import { AuthService, User } from '../../../core/services/auth.service';
         <a routerLink="/api-keys" routerLinkActive="active" class="nav-item">
           [ API Keys ]
         </a>
+        <a routerLink="/subscription" routerLinkActive="active" class="nav-item">
+          [ Subscription ]
+        </a>
+        <a routerLink="/pricing" routerLinkActive="active" class="nav-item">
+          [ Pricing ]
+        </a>
       </nav>
 
       <div class="admin-section" *ngIf="(user$ | async)?.role === 'ADMIN'">
