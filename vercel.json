@@ -1,7 +1,7 @@
 {
   "rootDirectory": "frontend",
   "buildCommand": "npm run build -- --configuration production",
-  "outputDirectory": "dist/frontend/browser",
+  "outputDirectory": "dist/frontend",
   "framework": null,
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
