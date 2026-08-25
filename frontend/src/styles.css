@@ -1,0 +1,158 @@
+/* You can add global styles to this file, and also import other style files */
+
+:root {
+  /* CYBER THEME CONSTANTS */
+  --cyber-bg: #0a0a0a;
+  --cyber-surface: #111111;
+  --cyber-surface-border: #222222;
+  
+  --cyber-neon: #00ff00;
+  --cyber-neon-dim: rgba(0, 255, 0, 0.2);
+  --cyber-neon-glow: 0 0 10px rgba(0, 255, 0, 0.5);
+  
+  --cyber-text: #e0e0e0;
+  --cyber-text-dim: #888888;
+  
+  --cyber-accent-danger: #ff003c;
+  --cyber-accent-warning: #ffb000;
+  --cyber-accent-info: #00e5ff;
+
+  --font-family-sans: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-family-mono: 'Fira Code', 'Courier New', Courier, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: var(--cyber-bg);
+  color: var(--cyber-text);
+  font-family: var(--font-family-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--cyber-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--cyber-surface-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cyber-neon-dim);
+}
+
+/* Global inputs */
+input, textarea, select {
+  background-color: var(--cyber-surface);
+  border: 1px solid var(--cyber-surface-border);
+  color: var(--cyber-text);
+  padding: 10px 14px;
+  border-radius: 4px;
+  font-family: var(--font-family-sans);
+  transition: all 0.2s ease-in-out;
+}
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--cyber-neon);
+  box-shadow: var(--cyber-neon-glow);
+}
+
+/* Cyber Buttons */
+.btn-cyber {
+  background-color: transparent;
+  color: var(--cyber-neon);
+  border: 1px solid var(--cyber-neon);
+  padding: 10px 20px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-cyber:hover {
+  background-color: var(--cyber-neon);
+  color: #000;
+  box-shadow: var(--cyber-neon-glow);
+}
+
+.btn-cyber-solid {
+  background-color: var(--cyber-neon);
+  color: #000;
+  border: 1px solid var(--cyber-neon);
+  padding: 10px 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cyber-solid:hover {
+  box-shadow: var(--cyber-neon-glow);
+  transform: translateY(-1px);
+}
+
+.btn-cyber-danger {
+  background-color: transparent;
+  color: var(--cyber-accent-danger);
+  border: 1px solid var(--cyber-accent-danger);
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-cyber-danger:hover {
+  background-color: var(--cyber-accent-danger);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(255, 0, 60, 0.5);
+}
+
+/* Typography elements */
+.cyber-title {
+  color: #fff;
+  text-shadow: 0 0 4px var(--cyber-neon);
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.cyber-card {
+  background: var(--cyber-surface);
+  border: 1px solid var(--cyber-surface-border);
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+/* Animations */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.cyber-scanline {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0) 0%,
+    rgba(0, 255, 0, 0.05) 50%,
+    rgba(0,0,0,0) 100%
+  );
+  opacity: 0.1;
+  pointer-events: none;
+  z-index: 9999;
+  animation: scanline 8s linear infinite;
+}
