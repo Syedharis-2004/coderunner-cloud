@@ -12,7 +12,7 @@ class Settings(BaseSettings):
 
     # CORS
     ALLOWED_ORIGINS: str = Field(
-        default="http://localhost:4200,http://127.0.0.1:4200,http://localhost:3000"
+        default="http://localhost:4200,http://127.0.0.1:4200,http://localhost:3000,https://coderunner-cloud.vercel.app"
     )
 
     # Database — required in production
