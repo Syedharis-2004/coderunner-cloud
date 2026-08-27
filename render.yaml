@@ -5,19 +5,19 @@ services:
     dockerfilePath: ./Dockerfile
     envVars:
       - key: DATABASE_URL
-        sync: false
+        sync: false          # Set manually in Render dashboard
       - key: JWT_SECRET
-        sync: false
+        sync: false          # Set manually in Render dashboard
       - key: API_KEY_SECRET
-        sync: false
+        sync: false          # Set manually in Render dashboard
       - key: SAFEPAY_API_KEY
-        sync: false
+        sync: false          # Set manually in Render dashboard
       - key: SAFEPAY_WEBHOOK_SECRET
         sync: false
       - key: SAFEPAY_ENVIRONMENT
-        value: production
+        value: sandbox
       - key: ALLOWED_ORIGINS
-        sync: false
+        sync: false          # Set to your Vercel frontend URL
       - key: ENVIRONMENT
         value: production
       - key: DEBUG
