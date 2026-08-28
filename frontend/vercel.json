@@ -1,5 +1,4 @@
 {
-  "buildCommand": "npm run build -- --configuration production",
   "outputDirectory": "dist/frontend/browser",
   "framework": null,
   "rewrites": [
