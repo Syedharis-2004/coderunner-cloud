@@ -25,24 +25,26 @@ logger = logging.getLogger(__name__)
     summary="List all active public plans",
 )
 def list_plans(db: Session = Depends(get_db)):
-    """
-    Get all active public plans for the pricing page.
-    No authentication required.
-    """
     plans = (
         db.query(Plan)
         .filter(Plan.is_active == True, Plan.is_public == True)
         .order_by(Plan.sort_order)
         .all()
     )
-    
-    logger.info(f"Listed {len(plans)} public plans")
-    
-    return ResponseEnvelope(
-        success=True,
-        message="Plans retrieved successfully",
-        data=plans,
-    )
+    return ResponseEnvelope(success=True, message="Plans retrieved successfully", data=plans)
+
+
+# NOTE: /key/{plan_key} MUST be registered before /{plan_id} to avoid shadowing
+@router.get(
+    "/key/{plan_key}",
+    response_model=ResponseEnvelope[PlanPublic],
+    summary="Get a plan by key (e.g., 'starter', 'pro')",
+)
+def get_plan_by_key(plan_key: str, db: Session = Depends(get_db)):
+    plan = db.query(Plan).filter(Plan.key == plan_key, Plan.is_active == True).first()
+    if not plan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Plan '{plan_key}' not found")
+    return ResponseEnvelope(success=True, message="Plan retrieved successfully", data=plan)
 
 
 @router.get(
@@ -51,42 +53,10 @@ def list_plans(db: Session = Depends(get_db)):
     summary="Get a specific plan by ID",
 )
 def get_plan(plan_id: str, db: Session = Depends(get_db)):
-    """Get details of a specific plan"""
     plan = db.query(Plan).filter(Plan.id == plan_id, Plan.is_active == True).first()
-    
     if not plan:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Plan not found"
-        )
-    
-    return ResponseEnvelope(
-        success=True,
-        message="Plan retrieved successfully",
-        data=plan,
-    )
-
-
-@router.get(
-    "/key/{plan_key}",
-    response_model=ResponseEnvelope[PlanPublic],
-    summary="Get a plan by key (e.g., 'starter', 'pro')",
-)
-def get_plan_by_key(plan_key: str, db: Session = Depends(get_db)):
-    """Get plan details by plan key"""
-    plan = db.query(Plan).filter(Plan.key == plan_key, Plan.is_active == True).first()
-    
-    if not plan:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Plan '{plan_key}' not found"
-        )
-    
-    return ResponseEnvelope(
-        success=True,
-        message="Plan retrieved successfully",
-        data=plan,
-    )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found")
+    return ResponseEnvelope(success=True, message="Plan retrieved successfully", data=plan)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -135,8 +105,7 @@ def create_plan_admin(plan_data: PlanCreate, db: Session = Depends(get_db)):
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
         **plan_data.model_dump()
-    )
-    
+    )    
     db.add(plan)
     db.commit()
     db.refresh(plan)

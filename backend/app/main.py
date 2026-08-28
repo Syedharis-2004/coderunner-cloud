@@ -56,9 +56,11 @@ async def attach_user_to_request(request: Request, call_next):
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled exception on {request.url}: {exc}", exc_info=True)
+    # Never expose internal error details in production
+    message = str(exc) if settings.DEBUG else "An internal server error occurred."
     return JSONResponse(
         status_code=500,
-        content={"success": False, "error": {"code": "INTERNAL_ERROR", "message": str(exc)}},
+        content={"success": False, "error": {"code": "INTERNAL_ERROR", "message": message}},
     )
 
 

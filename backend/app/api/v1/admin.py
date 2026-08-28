@@ -7,6 +7,7 @@ Provides system-wide metrics, user management, subscription overview.
 import logging
 from typing import List
 from decimal import Decimal
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -171,6 +172,64 @@ def toggle_user_status(
         success=True,
         message=f"User account {'activated' if is_active else 'deactivated'}",
         data=UserRead.model_validate(user),
+    )
+
+
+@router.patch(
+    "/users/{user_id}/plan",
+    response_model=ResponseEnvelope[dict],
+    dependencies=router_dependencies,
+    summary="Change a user's subscription plan (admin override)",
+)
+def change_user_plan(
+    user_id: str,
+    plan_key: str,
+    db: Session = Depends(get_db),
+):
+    """Admin can manually assign any plan to a user (e.g. for trials or support)."""
+    import uuid
+    from datetime import timedelta
+    from app.models.subscription import Subscription, SubscriptionStatus as SubStatus
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    plan = db.query(Plan).filter(Plan.key == plan_key, Plan.is_active == True).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail=f"Plan '{plan_key}' not found")
+
+    now = datetime.now(timezone.utc)
+    sub = db.query(Subscription).filter(Subscription.user_id == user_id).first()
+
+    if sub:
+        sub.plan_id = plan.id
+        sub.status = SubStatus.ACTIVE
+        sub.current_period_start = now
+        sub.current_period_end = now + timedelta(days=30)
+        sub.cancel_at_period_end = False
+        sub.updated_at = now
+    else:
+        sub = Subscription(
+            id=str(uuid.uuid4()),
+            user_id=user_id,
+            plan_id=plan.id,
+            status=SubStatus.ACTIVE,
+            current_period_start=now,
+            current_period_end=now + timedelta(days=30),
+            cancel_at_period_end=False,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(sub)
+
+    db.commit()
+    logger.info(f"[Admin] User {user_id} plan changed to {plan_key}")
+
+    return ResponseEnvelope(
+        success=True,
+        message=f"User plan updated to {plan.name}",
+        data={"user_id": user_id, "plan_key": plan_key, "plan_name": plan.name},
     )
 
 

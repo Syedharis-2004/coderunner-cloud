@@ -56,6 +56,38 @@ class Settings(BaseSettings):
     # Render dynamic port (optional — Render sets $PORT)
     PORT: int = Field(default=8000)
 
+    @field_validator("JWT_SECRET", mode="before")
+    @classmethod
+    def validate_jwt_secret(cls, v: str) -> str:
+        weak_defaults = {
+            "coderunner_cloud_dev_secret_key_needs_32_bytes!",
+            "super_secret_key_change_in_production",
+        }
+        import os
+        env = os.environ.get("ENVIRONMENT", "development")
+        if env == "production" and v.strip() in weak_defaults:
+            raise ValueError(
+                "JWT_SECRET is using a weak default value in production. "
+                "Set a strong random secret in Render Environment Variables."
+            )
+        return v
+
+    @field_validator("API_KEY_SECRET", mode="before")
+    @classmethod
+    def validate_api_key_secret(cls, v: str) -> str:
+        weak_defaults = {
+            "api_key_secret_salt_for_hmac_hashing_change_me!",
+            "another_super_secret_key_for_hashing",
+        }
+        import os
+        env = os.environ.get("ENVIRONMENT", "development")
+        if env == "production" and v.strip() in weak_defaults:
+            raise ValueError(
+                "API_KEY_SECRET is using a weak default value in production. "
+                "Set a strong random secret in Render Environment Variables."
+            )
+        return v
+
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def validate_and_fix_database_url(cls, v: str) -> str:

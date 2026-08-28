@@ -4,6 +4,7 @@ Subscriptions API Router
 Manage user subscriptions and subscription status.
 """
 import logging
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -34,27 +35,13 @@ def get_current_subscription(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Get the authenticated user's current subscription with plan details.
-    Returns null if user has no subscription (free tier).
-    """
     subscription = subscription_service.get_user_subscription(db, current_user.id)
-    
     if not subscription:
-        return ResponseEnvelope(
-            success=True,
-            message="No active subscription (free tier)",
-            data=None,
-        )
-    
-    # Manually set computed properties
-    subscription.is_active = subscription.is_active
-    subscription.allows_api_access = subscription.allows_api_access
-    
+        return ResponseEnvelope(success=True, message="No active subscription (free tier)", data=None)
     return ResponseEnvelope(
         success=True,
         message="Subscription retrieved successfully",
-        data=subscription,
+        data=SubscriptionWithPlan.from_orm_safe(subscription),
     )
 
 
@@ -67,13 +54,9 @@ def get_subscription_status(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Get a simple subscription status summary for dashboard display.
-    """
     subscription = subscription_service.get_user_subscription(db, current_user.id)
-    
+
     if not subscription:
-        # Free tier user
         return ResponseEnvelope(
             success=True,
             message="Free tier user",
@@ -88,9 +71,8 @@ def get_subscription_status(
                 allows_api_access=False,
             ),
         )
-    
+
     plan = subscription.plan
-    
     return ResponseEnvelope(
         success=True,
         message="Subscription status retrieved",
@@ -117,25 +99,16 @@ def cancel_subscription(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Cancel the user's subscription.
-    By default, cancels at the end of the billing period.
-    """
     success, message = subscription_service.cancel_subscription(
         db,
         current_user.id,
         cancel_at_period_end=cancel_request.cancel_at_period_end,
         reason=cancel_request.reason,
     )
-    
     if not success:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=message,
-        )
-    
-    logger.info(f"User {current_user.id} canceled subscription. Reason: {cancel_request.reason}")
-    
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message)
+
+    logger.info(f"User {current_user.id} canceled subscription")
     return ResponseEnvelope(
         success=True,
         message=message,
@@ -152,50 +125,22 @@ def reactivate_subscription(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Reactivate a subscription that was set to cancel at period end.
-    """
-    from app.services.stripe_service import stripe_service
-    
+    """Undo cancel_at_period_end — keep subscription active (SafePay version)."""
     subscription = subscription_service.get_user_subscription(db, current_user.id)
-    
+
     if not subscription:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No subscription found",
-        )
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No subscription found")
+
     if not subscription.cancel_at_period_end:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Subscription is not scheduled for cancellation",
         )
-    
-    if not subscription.stripe_subscription_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No Stripe subscription ID found",
-        )
-    
-    # Reactivate in Stripe
-    stripe_sub = stripe_service.reactivate_subscription(subscription.stripe_subscription_id)
-    
-    if not stripe_sub:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to reactivate subscription with Stripe",
-        )
-    
-    # Update local record
-    from datetime import datetime, timezone
+
     subscription.cancel_at_period_end = False
+    subscription.canceled_at = None
     subscription.updated_at = datetime.now(timezone.utc)
     db.commit()
-    
+
     logger.info(f"User {current_user.id} reactivated subscription")
-    
-    return ResponseEnvelope(
-        success=True,
-        message="Subscription reactivated successfully",
-        data={"reactivated": True},
-    )
+    return ResponseEnvelope(success=True, message="Subscription reactivated successfully", data={"reactivated": True})

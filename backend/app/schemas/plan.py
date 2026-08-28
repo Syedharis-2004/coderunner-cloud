@@ -26,7 +26,6 @@ class PlanBase(BaseModel):
 
 class PlanCreate(PlanBase):
     """Schema for creating a new plan (admin only)"""
-    stripe_price_id: Optional[str] = None
     is_active: bool = True
     is_public: bool = True
     sort_order: int = 0
@@ -37,7 +36,6 @@ class PlanUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     description: Optional[str] = None
     price_monthly: Optional[float] = Field(None, ge=0)
-    stripe_price_id: Optional[str] = None
     monthly_executions: Optional[int] = Field(None, ge=0)
     max_api_keys: Optional[int] = Field(None, ge=0)
     timeout_seconds: Optional[int] = Field(None, ge=1)
