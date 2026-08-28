@@ -8,7 +8,6 @@ export interface User {
   name: string;
   email: string;
   role: string;
-  plan: string;
   is_active: boolean;
   created_at: string;
 }

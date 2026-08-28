@@ -99,6 +99,7 @@ export class LoginComponent {
 
     this.authService.login(this.loginForm.value).subscribe({
       next: (res: any) => {
+        this.isLoading = false;
         if (res.success) {
           this.router.navigate(['/dashboard']);
         }

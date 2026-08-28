@@ -105,13 +105,13 @@ export class RegisterComponent {
 
     this.authService.register(this.registerForm.value).subscribe({
       next: (res: any) => {
+        this.isLoading = false;
         if (res.success) {
           this.router.navigate(['/dashboard']);
         }
       },
       error: (err: any) => {
         this.isLoading = false;
-        // The backend returns a detail string for duplicate email, or Pydantic validation array
         const detail = err.error?.detail;
         if (typeof detail === 'string') {
           this.errorMsg = detail;
