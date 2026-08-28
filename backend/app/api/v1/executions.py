@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
     response_model=ResponseEnvelope[ExecutionResult],
     summary="Execute code (synchronous)",
 )
-@limiter.limit(get_plan_rate_limit)
+@limiter.limit("30/minute")
 def run_code(
     request: Request,  # Required for rate limiter
     payload: CodeExecutionRequest,
@@ -149,7 +149,7 @@ def run_code(
     status_code=status.HTTP_202_ACCEPTED,
     summary="Queue code execution (async)",
 )
-@limiter.limit(get_plan_rate_limit)
+@limiter.limit("30/minute")
 def queue_execution(
     request: Request,  # Required for rate limiter
     payload: CodeExecutionRequest,

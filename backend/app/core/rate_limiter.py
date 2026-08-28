@@ -1,7 +1,8 @@
 """
 Rate Limiting Middleware
 ========================
-Plan-based rate limiting for API endpoints using SlowAPI.
+Plan-based rate limiting using SlowAPI with in-memory fallback.
+Redis is optional — if unavailable, falls back to in-memory storage.
 """
 import logging
 from fastapi import Request
@@ -24,63 +25,55 @@ def get_rate_limit_key(request: Request) -> str:
     return f"ip:{get_remote_address(request)}"
 
 
-def get_plan_rate_limit(request: Request) -> str:
-    """Return a slowapi rate-limit string based on the user's subscription plan."""
-    default_limit = f"{settings.RATE_LIMIT_FREE}/minute"
-
-    if not hasattr(request.state, "user") or not request.state.user:
-        return default_limit
-
+# Use Redis if available, else fall back to in-memory
+def _get_storage_uri() -> str:
     try:
-        from app.services.subscription_service import subscription_service
-        from app.core.database import SessionLocal
-
-        db = SessionLocal()
-        try:
-            plan = subscription_service.get_user_plan(db, request.state.user)
-            rate_limit = f"{plan.rate_limit_per_minute}/minute"
-            logger.debug(
-                f"Rate limit for user {request.state.user.id}: "
-                f"{rate_limit} (plan: {plan.key})"
-            )
-            return rate_limit
-        finally:
-            db.close()
-    except Exception as exc:
-        logger.error(f"Error resolving plan rate limit: {exc}")
-        return default_limit
+        import redis as _redis
+        r = _redis.from_url(settings.REDIS_URL, socket_connect_timeout=2)
+        r.ping()
+        logger.info("Rate limiter: using Redis storage")
+        return settings.REDIS_URL
+    except Exception:
+        logger.warning("Rate limiter: Redis unavailable, using in-memory storage")
+        return "memory://"
 
 
-# Initialize SlowAPI limiter backed by Redis
 limiter = Limiter(
     key_func=get_rate_limit_key,
-    default_limits=["1000/hour"],
-    storage_uri=settings.REDIS_URL,
+    default_limits=["200/minute"],
+    storage_uri=_get_storage_uri(),
     strategy="fixed-window",
 )
 
 
-def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
-    """Return a proper JSON 429 response instead of raising inside a handler."""
-    logger.warning(
-        f"Rate limit exceeded: key={get_rate_limit_key(request)} "
-        f"path={request.url.path}"
-    )
-    retry_after = None
-    if hasattr(exc, "detail") and "Retry after" in str(exc.detail):
-        retry_after = str(exc.detail).split("Retry after ")[-1]
+def get_plan_rate_limit(request: Request) -> str:
+    """Return slowapi rate-limit string based on the user's plan."""
+    default = f"{settings.RATE_LIMIT_FREE}/minute"
+    try:
+        if not hasattr(request.state, "user") or not request.state.user:
+            return default
+        from app.services.subscription_service import subscription_service
+        from app.core.database import SessionLocal
+        db = SessionLocal()
+        try:
+            plan = subscription_service.get_user_plan(db, request.state.user)
+            return f"{plan.rate_limit_per_minute}/minute"
+        finally:
+            db.close()
+    except Exception as exc:
+        logger.error(f"Rate limit plan lookup failed: {exc}")
+        return default
 
+
+def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    """Return JSON 429 response."""
     return JSONResponse(
         status_code=429,
         content={
             "success": False,
             "error": {
                 "code": "RATE_LIMIT_EXCEEDED",
-                "message": (
-                    "You have exceeded the rate limit for your plan. "
-                    "Please slow down or upgrade your plan."
-                ),
-                "retry_after": retry_after,
+                "message": "Rate limit exceeded. Please slow down or upgrade your plan.",
             },
         },
     )
